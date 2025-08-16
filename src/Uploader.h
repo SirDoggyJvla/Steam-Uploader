@@ -39,6 +39,7 @@ public:
     int UpdateItem(
         // at least one of
         string descriptionPath, string previewPath, string contentPath, string title, ERemoteStoragePublishedFileVisibility visibility, string tags, 
+        string addAppDependency, string removeAppDependency, string addItemDependency, string removeItemDependency,
         // optional
         string patchNotePath, string language
     );
@@ -62,14 +63,17 @@ private:
     UGCUpdateHandle_t CreateUpdateHandle(PublishedFileId_t workshopID);
 
     // update item informations
-    bool SetItemTitle(UGCUpdateHandle_t handle, string pchTitle);
-    bool SetItemDescription(UGCUpdateHandle_t handle, string pchDescription);
-    bool SetItemContent(UGCUpdateHandle_t handle, string pchContent);
-    bool SetItemPreview(UGCUpdateHandle_t handle, string pchPreview);
-    bool SetItemVisibility(UGCUpdateHandle_t handle, ERemoteStoragePublishedFileVisibility eVisibility);
-    bool SetTags(UGCUpdateHandle_t handle, const SteamParamStringArray_t* pchTags);
+    bool SetItemDescription(UGCUpdateHandle_t updateHandle, string descriptionPath);
+    bool SetItemPreview(UGCUpdateHandle_t updateHandle, string previewPath);
+    bool SetItemContent(UGCUpdateHandle_t updateHandle, string contentPath);
+    bool SetItemTitle(UGCUpdateHandle_t updateHandle, string title);
+    bool SetItemVisibility(UGCUpdateHandle_t updateHandle, ERemoteStoragePublishedFileVisibility visibility);
+    bool SetTags(UGCUpdateHandle_t updateHandle, string tags);
 
-    bool SetUploadLanguage(UGCUpdateHandle_t handle, string language);
+    bool HandleAppDependencies(UGCUpdateHandle_t updateHandle, string addAppDependency, string removeAppDependency);
+    bool HandleItemDependencies(UGCUpdateHandle_t updateHandle, string addItemDependency, string removeItemDependency);
+
+    bool SetUploadLanguage(UGCUpdateHandle_t updateHandle, string language);
 
     // Submit the item update with the patch note `pchContent`.
     void SubmitItemUpdate(UGCUpdateHandle_t updateHandle, string pchContent);

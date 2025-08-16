@@ -69,7 +69,8 @@ bool Uploader::ShutdownSteamAPI() {
 // main function
 int Uploader::UpdateItem(
         // at least one of
-        string descriptionPath, string previewPath, string contentPath, string title, ERemoteStoragePublishedFileVisibility visibility, string tags, 
+        string descriptionPath, string previewPath, string contentPath, string title, ERemoteStoragePublishedFileVisibility visibility, string tags,
+        string addAppDependency, string removeAppDependency, string addItemDependency, string removeItemDependency,
         // optional
         string patchNotePath, string language
     ) {
@@ -77,115 +78,27 @@ int Uploader::UpdateItem(
     UGCUpdateHandle_t updateHandle = CreateUpdateHandle(this->m_workshopID);
 
     // handle description
-    if (!descriptionPath.empty()) {
-        if (!exists(descriptionPath)) {
-            std::cerr << "Invalid description path: " << descriptionPath << ". Parameter must be a valid file.\n";
-        } else {
-            string description = readTxtFile(descriptionPath);
-            // verify description size respects the limits
-            if (description.size() > k_cchPublishedDocumentDescriptionMax) {
-                std::cerr << "Error: Description exceeds maximum length of " << k_cchPublishedDocumentDescriptionMax << " characters. (Current: " << description.size() << ")\n";
-            } else {
-                bool success = SetItemDescription(updateHandle, description.c_str());
-                if (!success) {
-                    std::cerr << "Error: Failed to set item description.\n";
-                }
-            }
-        }
-    }
+    SetItemDescription(updateHandle, descriptionPath);
 
     // handle preview
-    if (!previewPath.empty()) {
-        if (!exists(previewPath) || !is_regular_file(previewPath)) {
-            std::cerr << "Error: Invalid preview path (" << previewPath << "). Parameter must be a valid file.\n";
-        } else if (file_size(previewPath) > 1048576) {
-            std::cerr << "Error: Preview file is too large (" << file_size(previewPath) << " bytes). Maximum allowed is 1 MB.\n";
-        } else {
-            bool success = SetItemPreview(updateHandle, previewPath.c_str());
-            if (!success) {
-                std::cerr << "Error: Failed to set item preview. Suggested formats include JPG, PNG and GIF.\n";
-            }
-        }
-    }
+    SetItemPreview(updateHandle, previewPath);
 
     // handle content
-    if (!contentPath.empty()) {
-        if (!exists(contentPath) || !is_directory(contentPath)) {
-            std::cerr << "Invalid content path: " << contentPath << ". Parameter must be a valid folder.\n";
-        } else {
-            bool success = SetItemContent(updateHandle, contentPath.c_str());
-            if (!success) {
-                std::cerr << "Error: Failed to set item content.\n";
-            }
-        }
-    }
+    SetItemContent(updateHandle, contentPath);
 
     // handle title
-    if (!title.empty()) {
-        if (title.size() > k_cchPublishedDocumentTitleMax) {
-            std::cerr << "Error: Title exceeds maximum length of " << k_cchPublishedDocumentTitleMax << " characters. (Current: " << title.size() << ")\n";
-        } else {
-            bool success = SetItemTitle(updateHandle, title.c_str());
-            if (!success) {
-                std::cerr << "Error: Failed to set item title. (" << title << ")\n";
-            }
-        }
-    }
+    SetItemTitle(updateHandle, title);
 
     // handle visibility
-    if (visibility != static_cast<ERemoteStoragePublishedFileVisibility>(-1)) {
-        // verify the given visibility value is valid
-        if (visibility >= 0 && visibility <= 3) {
-            bool success = SetItemVisibility(updateHandle, visibility);
-            if (!success) {
-                std::cerr << "Error: Failed to set item visibility. (" << visibility << ")\n";
-            }
-        } else {
-            std::cerr << "Error: Invalid visibility value (" << visibility << "). Must be between 0 and 3.\n";
-        }
-    }
-    
+    SetItemVisibility(updateHandle, visibility);
+
     // handle tags
-    if (tags != "$EMPTY") {
-        // inline stringToSteamArray due to a segmentation fault if it isn't
-        // Split tags by comma
-        std::vector<std::string> tagList;
-        std::stringstream ss(tags);
-        std::string tag;
-        while (std::getline(ss, tag, ',')) {
-            tag.erase(0, tag.find_first_not_of(" \t\n\r"));
-            tag.erase(tag.find_last_not_of(" \t\n\r") + 1);
-            if (!tag.empty()) tagList.push_back(tag);
-        }
-
-        // Prepare array of C strings
-        std::vector<const char*> tagCStrs;
-        for (const auto& t : tagList) tagCStrs.push_back(t.c_str());
-
-        SteamParamStringArray_t tagArray;
-        tagArray.m_ppStrings = tagCStrs.empty() ? nullptr : tagCStrs.data();
-        tagArray.m_nNumStrings = static_cast<int>(tagCStrs.size());
-
-        bool success = SetTags(updateHandle, &tagArray);
-        if (!success) {
-            std::cerr << "Error: Failed to set item tags. (" << tags << ")\n";
-        }
-    }
+    SetTags(updateHandle, tags);
 
 
 
     // handle language
-    if (language != "english") {
-        // verify it's a valid language for Steam
-        if (!IsValidSteamLanguageCode(language)) {
-            std::cerr << "Error: Invalid language code. (" << language << ")\n";
-        } else {
-            bool success = SetUploadLanguage(updateHandle, language);
-            if (!success) {
-                std::cerr << "Error: Failed to set upload language. ("<< language << ")\n";
-            }
-        }
-    }
+    SetUploadLanguage(updateHandle, language);
 
     // handle patch note
     string patchNote = ""; // default
@@ -231,32 +144,167 @@ UGCUpdateHandle_t Uploader::CreateUpdateHandle(PublishedFileId_t workshopID) {
 }
 
 // update item informations
-bool Uploader::SetItemTitle(UGCUpdateHandle_t handle, string pchTitle) {
-    return SteamUGC()->SetItemTitle(handle, pchTitle.c_str());
+bool Uploader::SetItemDescription(UGCUpdateHandle_t updateHandle, string descriptionPath) {
+    if (!descriptionPath.empty()) {
+        // verify existing file
+        if (!exists(descriptionPath) || !is_regular_file(descriptionPath)) {
+            std::cerr << "Invalid description file path: " << descriptionPath << ". Parameter must be a valid file path.\n";
+        } else {
+            string description = readTxtFile(descriptionPath);
+            // verify description size respects the limits
+            if (description.size() > k_cchPublishedDocumentDescriptionMax) {
+                std::cerr << "Error: Description exceeds maximum length of " << k_cchPublishedDocumentDescriptionMax << " characters. (Current: " << description.size() << ")\n";
+            } else {
+                bool success = SteamUGC()->SetItemDescription(updateHandle, description.c_str());
+                if (!success) {
+                    std::cerr << "Error: Failed to set item description.\n";
+                }
+                return success;
+            }
+        }
+    } else {
+        return true; // accepted behavior
+    }
+
+    return false;
 }
 
-bool Uploader::SetItemDescription(UGCUpdateHandle_t handle, string pchDescription) {
-    return SteamUGC()->SetItemDescription(handle, pchDescription.c_str());
+bool Uploader::SetItemPreview(UGCUpdateHandle_t updateHandle, string previewPath) {
+    if (!previewPath.empty()) {
+        if (!exists(previewPath) || !is_regular_file(previewPath)) {
+            std::cerr << "Error: Invalid preview file path (" << previewPath << "). Parameter must be a valid file path.\n";
+        } else if (file_size(previewPath) > 1048576) {
+            std::cerr << "Error: Preview file is too large (" << file_size(previewPath) << " bytes). Maximum allowed is 1 MB.\n";
+        } else {
+            bool success = SteamUGC()->SetItemPreview(updateHandle, previewPath.c_str());
+            if (!success) {
+                std::cerr << "Error: Failed to set item preview. Suggested formats include JPG, PNG and GIF.\n";
+            }
+            return success;
+        }
+    } else {
+        return true; // accepted behavior
+    }
+
+    return false;
 }
 
-bool Uploader::SetItemContent(UGCUpdateHandle_t handle, string pchContent) {
-    return SteamUGC()->SetItemContent(handle, pchContent.c_str());
+bool Uploader::SetItemContent(UGCUpdateHandle_t updateHandle, string contentPath) {
+    if (!contentPath.empty()) {
+        if (!exists(contentPath) || !is_directory(contentPath)) {
+            std::cerr << "Invalid content path: " << contentPath << ". Parameter must be a valid folder.\n";
+        } else {
+            bool success = SteamUGC()->SetItemContent(updateHandle, contentPath.c_str());
+            if (!success) {
+                std::cerr << "Error: Failed to set item content.\n";
+            }
+            return success;
+        }
+    } else {
+        return true; // accepted behavior
+    }
+
+    return false;
 }
 
-bool Uploader::SetItemPreview(UGCUpdateHandle_t handle, string pchPreview) {
-    return SteamUGC()->SetItemPreview(handle, pchPreview.c_str());
+bool Uploader::SetItemTitle(UGCUpdateHandle_t updateHandle, string title) {
+    if (!title.empty()) {
+        // verify title size respects the limits
+        if (title.size() > k_cchPublishedDocumentTitleMax) {
+            std::cerr << "Error: Title exceeds maximum length of " << k_cchPublishedDocumentTitleMax << " characters. (Current: " << title.size() << ")\n";
+        } else {
+            bool success = SteamUGC()->SetItemTitle(updateHandle, title.c_str());
+            if (!success) {
+                std::cerr << "Error: Failed to set item title. (" << title << ")\n";
+            }
+            return success;
+        }
+    } else {
+        return true; // accepted behavior
+    }
+
+    return false;
 }
 
-bool Uploader::SetItemVisibility(UGCUpdateHandle_t handle, ERemoteStoragePublishedFileVisibility eVisibility) {
-    return SteamUGC()->SetItemVisibility(handle, eVisibility);
+bool Uploader::SetItemVisibility(UGCUpdateHandle_t updateHandle, ERemoteStoragePublishedFileVisibility visibility) {
+    if (visibility != static_cast<ERemoteStoragePublishedFileVisibility>(-1)) {
+        // verify the given visibility value is valid
+        if (visibility >= 0 && visibility <= 3) {
+            bool success = SteamUGC()->SetItemVisibility(updateHandle, visibility);
+            if (!success) {
+                std::cerr << "Error: Failed to set item visibility. (" << visibility << ")\n";
+            }
+            return success;
+        } else {
+            std::cerr << "Error: Invalid visibility value (" << visibility << "). Must be between 0 and 3.\n";
+        }
+    } else {
+        return true; // accepted behavior
+    }
+
+    return false;
 }
 
-bool Uploader::SetTags(UGCUpdateHandle_t handle, const SteamParamStringArray_t* pchTags) {
-    return SteamUGC()->SetItemTags(handle, pchTags);
+bool Uploader::SetTags(UGCUpdateHandle_t updateHandle, string tags) {
+    if (tags != "$EMPTY") {
+        // Split tags by comma
+        std::vector<std::string> tagList;
+        std::stringstream ss(tags);
+        std::string tag;
+        while (std::getline(ss, tag, ',')) {
+            tag.erase(0, tag.find_first_not_of(" \t\n\r"));
+            tag.erase(tag.find_last_not_of(" \t\n\r") + 1);
+            if (!tag.empty()) tagList.push_back(tag);
+        }
+
+        // Prepare array of C strings
+        std::vector<const char*> tagCStrs;
+        for (const auto& t : tagList) tagCStrs.push_back(t.c_str());
+
+        // make it into Steam param array
+        SteamParamStringArray_t tagArray;
+        tagArray.m_ppStrings = tagCStrs.empty() ? nullptr : tagCStrs.data();
+        tagArray.m_nNumStrings = static_cast<int>(tagCStrs.size());
+
+        bool success = SteamUGC()->SetItemTags(updateHandle, &tagArray);
+        if (!success) {
+            std::cerr << "Error: Failed to set item tags. (" << tags << ")\n";
+        }
+        return success;
+    } else {
+        return true; // accepted behavior
+    }
+
+    return false;
 }
 
-bool Uploader::SetUploadLanguage(UGCUpdateHandle_t handle, string language) {
-    return SteamUGC()->SetItemUpdateLanguage(handle, language.c_str());
+bool Uploader::HandleAppDependencies(UGCUpdateHandle_t updateHandle, string addAppDependency, string removeAppDependency) {
+    SteamUGC()->GetAppDependencies(this->m_workshopID)
+
+
+
+}
+
+
+
+
+bool Uploader::SetUploadLanguage(UGCUpdateHandle_t updateHandle, string language) {
+    if (language != "english") {
+        // verify it's a valid language for Steam
+        if (!IsValidSteamLanguageCode(language)) {
+            std::cerr << "Error: Invalid language code. (" << language << ")\n";
+        } else {
+            bool success = SteamUGC()->SetItemUpdateLanguage(updateHandle, language.c_str());
+            if (!success) {
+                std::cerr << "Error: Failed to set upload language. ("<< language << ")\n";
+            }
+            return success;
+        }
+    } else {
+        return true; // accepted behavior
+    }
+
+    return false;
 }
 
 // send the update

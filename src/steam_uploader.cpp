@@ -8,6 +8,7 @@ using std::string;
 
 // random tools
 #include "Util/AppID.h"
+#include "Util/Help.h"
 
 // main app
 #include "Uploader.h"
@@ -21,7 +22,6 @@ static struct option long_options[] = {
     // default informations
     {"appID", required_argument, 0, 'a'},
     {"workshopID", required_argument, 0, 'w'},
-    {"folder", required_argument, 0, 'f'},
     {"new", no_argument, 0, 'n'},
 
     // parameters to upload
@@ -32,12 +32,20 @@ static struct option long_options[] = {
     {"visibility", required_argument, 0, 'v'},
     {"tags", required_argument, 0, 'T'},
 
+    {"addAppDependency", required_argument, 0, 'Q'},
+    {"removeAppDependency", required_argument, 0, 'q'},
+    {"addItemDependency", required_argument, 0, 'I'},
+    {"removeItemDependency", required_argument, 0, 'i'},
+
     // optional
     {"patchNote", required_argument, 0, 'P'},
     {"language", required_argument, 0, 'L'},
 
     // verbose
     {"verbose", no_argument, 0, 'V'}, // does nothing for now
+
+    // help
+    {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
 
@@ -61,7 +69,6 @@ bool allUploadParamsEmpty(
     const std::string& previewPath,
     const std::string& contentPath,
     const std::string& title,
-    const std::string& folder,
     ERemoteStoragePublishedFileVisibility visibility,
     const std::string& tags
 ) {
@@ -69,7 +76,6 @@ bool allUploadParamsEmpty(
            previewPath.empty() &&
            contentPath.empty() &&
            title.empty() &&
-           folder.empty() &&
            visibility == static_cast<ERemoteStoragePublishedFileVisibility>(-1) &&
            tags == "$EMPTY";
 }
@@ -83,7 +89,6 @@ int main(int argc, char *argv[])
     // init params
     AppId_t appID = 0;
     PublishedFileId_t workshopID = 0;
-    string folder; // path to the folder
     bool isNew = false;
 
     string descriptionPath; // path to description
@@ -92,6 +97,11 @@ int main(int argc, char *argv[])
     string title; // title of the item
     ERemoteStoragePublishedFileVisibility visibility = static_cast<ERemoteStoragePublishedFileVisibility>(-1); // nil value to detect unset visibility
     string tags = "$EMPTY"; // tags to add (not implemented yet)
+
+    string addAppDependency = "";
+    string removeAppDependency = "";
+    string addItemDependency = "";
+    string removeItemDependency = "";
 
     string patchNotePath = ""; // path to patch note
     string language = "english"; // default language on Steam's side
@@ -114,11 +124,6 @@ int main(int argc, char *argv[])
         // workshop ID
         case 'w':
             workshopID = static_cast<PublishedFileId_t>(std::strtoull(optarg, nullptr, 10));
-            break;
-
-        // mod folder
-        case 'f':
-            folder = string(optarg);
             break;
 
         // call for a new workshop item creation
@@ -146,6 +151,19 @@ int main(int argc, char *argv[])
             tags = string(optarg);
             break;
 
+        case 'Q': // add app dependency
+            addAppDependency = string(optarg);
+            break;
+        case 'q': // remove app dependency
+            removeAppDependency = string(optarg);
+            break;
+        case 'I': // add item dependency
+            addItemDependency = string(optarg);
+            break;
+        case 'i': // remove item dependency
+            removeItemDependency = string(optarg);
+            break;
+
         // optional
         case 'P': // patch note
             patchNotePath = string(optarg);
@@ -159,6 +177,11 @@ int main(int argc, char *argv[])
             verbose = true;
             break;
 
+        // help
+        case 'h':
+            printHelp();
+            return 0;
+
         // wrong argument passed down
         default:
             std::cerr << "Wrong usage: " << argv[0] << " see doc.\n";
@@ -167,7 +190,7 @@ int main(int argc, char *argv[])
     }
 
     // verify at least one of these parameters is set
-    if (allUploadParamsEmpty(descriptionPath, previewPath, contentPath, title, folder, visibility, tags)) {
+    if (allUploadParamsEmpty(descriptionPath, previewPath, contentPath, title, visibility, tags)) {
         // acceptable behavior, creating an empty workshop item
         if (isNew) {
             Uploader uploader(workshopID, appID, isNew);
@@ -182,7 +205,8 @@ int main(int argc, char *argv[])
     Uploader uploader(workshopID, appID, isNew);
     return uploader.UpdateItem(
         // at least one of
-        descriptionPath, previewPath, contentPath, title, visibility, tags, 
+        descriptionPath, previewPath, contentPath, title, visibility, tags,
+        addAppDependency, removeAppDependency, addItemDependency, removeItemDependency,
         // optional
         patchNotePath, language
     );
