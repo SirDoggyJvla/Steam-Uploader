@@ -71,7 +71,7 @@ target_compile_definitions("${CMAKE_PROJECT_NAME}" PRIVATE
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE
     steamworks_sdk
     nlohmann_json
-    # CURL::libcurl
+    CURL::libcurl
     cxxopts::cxxopts
     spdlog::spdlog
     curl
