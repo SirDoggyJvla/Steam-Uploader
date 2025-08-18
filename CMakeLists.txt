@@ -42,7 +42,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 include(CPM)
 include(cpm/spdlog)
 include(cpm/nlohmann_json)
-# include(cpm/curl)
+include(cpm/curl)
 include(cpm/steamworks_sdk)
 include(cpm/cxxopts)
 
@@ -76,5 +76,3 @@ target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE
     spdlog::spdlog
     curl
 )
-
-find_package(CURL REQUIRED)
