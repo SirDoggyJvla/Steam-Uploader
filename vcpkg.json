@@ -1,0 +1,21 @@
+{
+  "name": "steam-uploader",
+  "version-string": "1.0.0",
+  "description": "A CLI tool to update UGC on the Steam workshop",
+  "dependencies": [
+    "spdlog",
+    {
+      "name": "curl",
+      "version>=": "8.15.0#1"
+    },
+    {
+      "name": "nlohmann-json",
+      "version>=": "3.12.0#1"
+    },
+    {
+      "name": "cxxopts",
+      "version>=": "3.3.1#1"
+    }
+  ],
+  "builtin-baseline": "b1e15efef6758eaa0beb0a8732cfa66f6a68a81d"
+}

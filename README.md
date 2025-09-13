@@ -3,6 +3,9 @@
 > [!NOTE]
 > This tool is a work in progress. Please notify us of any bugs via the issues page.
 
+> [!IMPORTANT]
+> x86 architecture is NOT supported!
+
 A CLI tool to update items on the Steam Workshop independently from the game.
 Most workshop features are supported, but more are on their way!
 
@@ -21,13 +24,22 @@ Built with the [Steamworks SDK](https://partner.steamgames.com/doc/sdk) v1.62.
 > [!NOTE]
 > Steam needs to be open (even in the background) to use the tool!
 
-1. Open a terminal/CLI in the program's containing folder in the folder:
+1. Install and setup vcpkg (only follow the first two steps, skip creating the project directory) - [Install and use packages with CMake](https://learn.microsoft.com/en-us/vcpkg/get_started/get-started)
+   An example of what someone might do is this:
+   
+   ```bash
+       cd C:\ && git clone https://github.com/microsoft/vcpkg.git
+       cd vcpkg && bootstrap-vcpkg.bat
+   ```
+   
+   Proceeded by setting `VCPKG_ROOT` environment variable and appending the same vcpkg root directory to the `PATH` environment variable.
+
+2. Open a terminal/CLI in the program's containing folder in the folder:
    
    #### Windows
    
-    In the File Explorer address bar with the breadcrums of the folder you're in,
-    you can click the empty area and type `cmd` to open the terminal inside this folder.
-    Alternatively, open the Command Prompt application and set the cwd via
+    In the File Explorer address bar with the breadcrums of the folder you're in, you can click the empty area and type `cmd` to open the terminal inside this folder.
+    Alternatively, open the Command Prompt application and set the cwd:
    
    ```bash
        cd path/to/folder
@@ -38,7 +50,8 @@ Built with the [Steamworks SDK](https://partner.steamgames.com/doc/sdk) v1.62.
    #### Linux / MacOS
    
     Open the respective terminal app and cd to the folder like the above codeblock.
-2. Use the application! If you need some help with this, see the [examples](#examples).
+
+3. Use the application! If you need some help with this, see the [examples](#examples).
 
 ## Arguments
 
@@ -138,11 +151,8 @@ You can combine multiple arguments at once to update different things in a singl
 
 ## Building
 
-> [!IMPORTANT]
-> x86 architecture is NOT supported!
-
-> [!IMPORTANT]
-> MSVC toolchain is NOT supported! Use mingw64 if on Windows.
+> [!NOTE]
+> Using MSVC toolchain is not fully supported, use it at your own risk! MinGW is recommended on Windows, using the `x64-mingw-static` vcpkg triplet.
 
 The only external dependency that is required to be manually installed is curl.
 Windows users should install [curl for Windows](https://curl.se/windows/).
@@ -151,11 +161,13 @@ Linux users need to add the corresponding libcurl package via the system's packa
 Building in release mode:
 
 ```shell
-cmake -S . -B build -G Ninja -D CMAKE_BUILD_TYPE=Release
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
-Generating distribution archives is done via:
+You will want to add onto the first cmake command `-DVCPKG_TARGET_TRIPLET=x64-mingw-static` if you are on Windows and are using MinGW.
+
+Generating release archives:
 
 ```shell
 cd build

@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.30)
 
+message(STATUS "Configuring project for system: ${CMAKE_SYSTEM_NAME}")
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/dist")
 
@@ -13,28 +15,21 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin")
 
-# Set the CPM cache to .cache/ if there isn't one already.
-# Prevents downloading the same things over and over.
-if (NOT DEFINED ENV{CPM_SOURCE_CACHE})
-    set(ENV{CPM_SOURCE_CACHE} "${CMAKE_SOURCE_DIR}/.cache/CPM")
-endif ()
+# Vcpkg toolchain file
+set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
 
+# Project details
 set(SteamUploader_NAME "SteamUploader")
 set(SteamUploader_DESC "A CLI tool to update UGC on the Steam workshop")
 set(SteamUploader_VERSION 0.6.0)
 set(SteamUploader_VENDOR "SirDoggyJvla")
 
-if(win32)
-        option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
-        set(BUILD_STATIC_LIBS ON)
-else()
-        option(BUILD_SHARED_LIBS "Build shared libraries" ON)
-        set(BUILD_STATIC_LIBS OFF)
-endif()
+# CMake build variables
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+set(BUILD_STATIC_LIBS ON)
 set(BUILD_TESTING OFF)
 
 project(${SteamUploader_NAME} VERSION ${SteamUploader_VERSION} DESCRIPTION ${SteamUploader_DESC})
-message(STATUS "Configuring project for system: ${CMAKE_SYSTEM_NAME}")
 
 # Adding sources manually gives much faster builds than globbing the entire source dir
 add_executable("${CMAKE_PROJECT_NAME}" ${SOURCES}
@@ -62,48 +57,38 @@ target_compile_definitions("${CMAKE_PROJECT_NAME}" PRIVATE
         PROJECT_VERSION_PATCH=${PROJECT_VERSION_PATCH}
 )
 
-# CPM Dependencies
+# Project dependencies
 
-include(CPM)
-include(cpm/spdlog)
-include(cpm/nlohmann_json)
-include(cpm/curl)
-include(cpm/steamworks_sdk)
-include(cpm/cxxopts)
+find_package(cxxopts CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+find_package(CURL REQUIRED)
 
-# set(CMAKE_CXX_STANDARD_LIBRARIES "-static-libgcc -static-libstdc++ ${CMAKE_CXX_STANDARD_LIBRARIES}")
-# set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
-
-# if(Win32)
-#         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic,-lwinpthread")
-# endif()
-
-# set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bdynamic")
+include(steamworks_sdk)
 
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE
         steamworks_sdk
-        nlohmann_json
+        nlohmann_json::nlohmann_json
         CURL::libcurl
-        cxxopts
-        spdlog)
-if(win32)
-        target_link_options("${CMAKE_PROJECT_NAME}" PRIVATE -static-libgcc -static-libstdc++ -static)
-endif()
+        cxxopts::cxxopts
+        spdlog::spdlog
+)
+target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -static -static-libgcc -static-libstdc++)
 
 # Moves all of the dynamic libraries needed to the runtime output bin/ folder.
-if(WIN32)
-        add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                $<TARGET_RUNTIME_DLLS:${CMAKE_PROJECT_NAME}> $<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>
-                COMMAND_EXPAND_LISTS
-        )
-elseif(UNIX AND NOT APPLE)
-        add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        "${CMAKE_SOURCE_DIR}/packages/steam/redistributable_bin/linux64/libsteam_api.so"
-                        $<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>
-        )
-endif()
+if (WIN32)
+    add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_RUNTIME_DLLS:${CMAKE_PROJECT_NAME}> $<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>
+            COMMAND_EXPAND_LISTS
+    )
+elseif (UNIX AND NOT APPLE)
+    add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/packages/steam/redistributable_bin/linux64/libsteam_api.so"
+            $<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>
+    )
+endif ()
 
 # CPack install setup
 install(TARGETS ${CMAKE_PROJECT_NAME}

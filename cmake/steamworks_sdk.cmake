@@ -6,7 +6,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(steamworks_sdk_OS_ARCH "linux64")
     set(steamworks_sdk_LIB_NAME "libsteam_api")
     set(steamworks_sdk_LIB_EXT "so")
-else ()
+else () # Commonly Darwin for mac
     set(steamworks_sdk_OS_ARCH "osx")
     set(steamworks_sdk_LIB_NAME "libsteam_api")
     set(steamworks_sdk_LIB_EXT "dylib")
