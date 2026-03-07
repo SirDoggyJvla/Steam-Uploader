@@ -24,17 +24,7 @@ Built with the [Steamworks SDK](https://partner.steamgames.com/doc/sdk) v1.62.
 > [!NOTE]
 > Steam needs to be open (even in the background) to use the tool!
 
-1. Install and setup vcpkg (only follow the first two steps, skip creating the project directory) - [Install and use packages with CMake](https://learn.microsoft.com/en-us/vcpkg/get_started/get-started)
-   An example of what someone might do is this:
-   
-   ```bash
-       cd C:\ && git clone https://github.com/microsoft/vcpkg.git
-       cd vcpkg && bootstrap-vcpkg.bat
-   ```
-   
-   Proceeded by setting `VCPKG_ROOT` environment variable and appending the same vcpkg root directory to the `PATH` environment variable.
-
-2. Open a terminal/CLI in the program's containing folder in the folder:
+1. Open a terminal/CLI in the program's containing folder in the folder:
    
    #### Windows
    
@@ -51,7 +41,7 @@ Built with the [Steamworks SDK](https://partner.steamgames.com/doc/sdk) v1.62.
    
     Open the respective terminal app and cd to the folder like the above codeblock.
 
-3. Use the application! If you need some help with this, see the [examples](#examples).
+2. Use the application! If you need some help with this, see the [examples](#examples).
 
 ## Arguments
 
@@ -159,6 +149,16 @@ Check out these projects below:
 
 > [!NOTE]
 > Using MSVC toolchain is not fully supported, use it at your own risk! MinGW is recommended on Windows, using the `x64-mingw-static` vcpkg triplet.
+
+Install and setup vcpkg (only follow the first two steps, skip creating the project directory) - [Install and use packages with CMake](https://learn.microsoft.com/en-us/vcpkg/get_started/get-started.
+An example of what someone might do is this:
+   
+   ```bash
+       cd C:\ && git clone https://github.com/microsoft/vcpkg.git
+       cd vcpkg && bootstrap-vcpkg.bat
+   ```
+   
+   Proceeded by setting `VCPKG_ROOT` environment variable and appending the same vcpkg root directory to the `PATH` environment variable.
 
 The only external dependency that is required to be manually installed is curl.
 Windows users should install [curl for Windows](https://curl.se/windows/).
