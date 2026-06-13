@@ -182,5 +182,5 @@ cpack -G ZIP -C Release
 
 ## Contact
 
-The tool was created by me (discord: sirdoggyjvla) for the Project Zomboid modding community.
+The tool was created by me (discord: simkdt) for the Project Zomboid modding community.
 You can find us on the [Unofficial Modding Discord](https://pzwiki.net/wiki/Unofficial_Modding_Discord) of Project Zomboid.
